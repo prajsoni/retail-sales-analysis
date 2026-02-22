@@ -7,7 +7,6 @@ Drop Table if exists Orders;
 Drop Table if exists products;
 Drop Table if exists customers;
 
-
 -- Create Customer table
 Create table customers( 
 	customer_id INT Primary Key auto_increment,
@@ -86,3 +85,53 @@ Select category, Sum(quantity) As total_quantity from products
 --  What is the average order value?
 Select Avg(price*quantity) As Avg_Order_Value from products
 	join Orders On products.product_id = orders.product_id;
+    
+-- Which city has the most customers?
+Select count(customer_id) As Count, city from customers
+	group by city
+    order by Count Desc;
+    
+--  How many orders were placed each month?
+Select monthname(order_date) As Month, count(order_id) As Order_Quantity from orders
+	group by Month
+    order by Order_Quantity Desc;
+    
+-- Which product has been ordered the most times?
+Select product_name, count(order_id) As Count from products
+	join orders On products.product_id = orders.product_id
+	group by product_name 
+    order by Count Desc;
+    
+-- Which products have never been ordered?
+Select product_name, order_id from products
+	Left Join orders On products.product_id = orders.product_id
+    Where orders.order_id is null
+    
+-- What percentage of total revenue does each product contribute?
+SELECT product_name,
+       SUM(quantity * price) AS Revenue,
+       SUM(quantity * price) / (SELECT SUM(quantity * price) FROM orders JOIN products ON orders.product_id = products.product_id) * 100 AS Percentage
+FROM products
+JOIN orders ON products.product_id = orders.product_id
+GROUP BY product_name;
+    
+-- What percentage of total orders does each customer contribute?
+Select customer_name, 
+		count(order_id) As Total_Orders,
+        count(order_id) / (Select count(order_id) from orders) * 100
+		from customers join orders On customers.customer_id = orders.order_id
+        GROUP BY customer_name;
+        
+-- Categorize customers as High, Medium or Low Spender
+SELECT customer_name,
+       SUM(orders.quantity * products.price) AS Total_Spent,
+       CASE
+           WHEN SUM(orders.quantity * products.price) > 500 THEN 'High Spender'
+           WHEN SUM(orders.quantity * products.price) BETWEEN 200 AND 500 THEN 'Medium Spender'
+           ELSE 'Low Spender'
+       END AS Spender_Category
+FROM customers
+JOIN orders ON customers.customer_id = orders.customer_id
+JOIN products ON orders.product_id = products.product_id
+GROUP BY customer_name
+ORDER BY Total_Spent DESC;
